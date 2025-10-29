@@ -1,0 +1,470 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}AI チャットテスト - {{ block.super }}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .chat-container {
+        max-width: 1200px;
+        margin: 20px auto;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .chat-header {
+        background: #417690;
+        color: white;
+        padding: 20px;
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .chat-status {
+        background: #f8f9fa;
+        padding: 15px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .status-item {
+        display: inline-block;
+        margin-right: 20px;
+        padding: 5px 10px;
+        background: white;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .status-ok {
+        color: #28a745;
+        font-weight: bold;
+    }
+    
+    .status-error {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    
+    .chat-messages {
+        height: 500px;
+        overflow-y: auto;
+        padding: 20px;
+        background: #f8f9fa;
+    }
+    
+    .message {
+        margin-bottom: 15px;
+        display: flex;
+        animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .message.user {
+        justify-content: flex-end;
+    }
+    
+    .message.assistant {
+        justify-content: flex-start;
+    }
+    
+    .message-content {
+        max-width: 70%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        word-wrap: break-word;
+    }
+    
+    .message.user .message-content {
+        background: #007bff;
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+    
+    .message.assistant .message-content {
+        background: white;
+        color: #333;
+        border: 1px solid #dee2e6;
+        border-bottom-left-radius: 4px;
+    }
+    
+    .message-meta {
+        font-size: 11px;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+    
+    .chat-input-container {
+        padding: 20px;
+        background: white;
+        border-top: 1px solid #dee2e6;
+        border-radius: 0 0 8px 8px;
+    }
+    
+    .chat-input-form {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .chat-input {
+        flex: 1;
+        padding: 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .chat-input:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    
+    .btn-send {
+        padding: 12px 30px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.2s;
+    }
+    
+    .btn-send:hover {
+        background: #0056b3;
+    }
+    
+    .btn-send:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+    }
+    
+    .btn-clear {
+        padding: 12px 20px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .btn-clear:hover {
+        background: #5a6268;
+    }
+    
+    .btn-test {
+        padding: 8px 16px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-left: 10px;
+        transition: background 0.2s;
+    }
+    
+    .btn-test:hover {
+        background: #218838;
+    }
+    
+    .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+        color: #6c757d;
+    }
+    
+    .loading.active {
+        display: block;
+    }
+    
+    .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .usage-info {
+        font-size: 11px;
+        color: #6c757d;
+        margin-top: 10px;
+    }
+    
+    .alert {
+        padding: 12px 20px;
+        margin: 15px 0;
+        border-radius: 4px;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <div class="chat-header">
+        <h1 style="margin: 0; font-size: 24px;">🤖 AI チャットテスト</h1>
+        <p style="margin: 5px 0 0 0; opacity: 0.9;">OpenAI APIとの接続を確認し、AIとチャットできます</p>
+    </div>
+    
+    <div class="chat-status">
+        <div class="status-item">
+            <strong>APIキー:</strong>
+            {% if api_key_set %}
+                <span class="status-ok">✓ 設定済み</span>
+            {% else %}
+                <span class="status-error">✗ 未設定</span>
+            {% endif %}
+        </div>
+        
+        <div class="status-item">
+            <strong>AI機能:</strong>
+            {% if ai_enabled %}
+                <span class="status-ok">✓ 有効</span>
+            {% else %}
+                <span class="status-error">✗ 無効</span>
+            {% endif %}
+        </div>
+        
+        <div class="status-item">
+            <strong>モデル:</strong> {{ ai_settings.model }}
+        </div>
+        
+        <div class="status-item">
+            <strong>Temperature:</strong> {{ ai_settings.temperature }}
+        </div>
+        
+        <button type="button" class="btn-test" onclick="testConnection()">
+            🔍 接続テスト
+        </button>
+    </div>
+    
+    <div id="alert-container"></div>
+    
+    <div class="chat-messages" id="chatMessages">
+        <div class="message assistant">
+            <div class="message-content">
+                <strong>システム:</strong> こんにちは！AIチャットテストへようこそ。何でもお気軽に質問してください。
+            </div>
+        </div>
+    </div>
+    
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <span>AIが応答を生成中...</span>
+    </div>
+    
+    <div class="chat-input-container">
+        <form class="chat-input-form" onsubmit="sendMessage(event)">
+            <input 
+                type="text" 
+                class="chat-input" 
+                id="messageInput" 
+                placeholder="メッセージを入力..." 
+                autocomplete="off"
+                {% if not api_key_set or not ai_enabled %}disabled{% endif %}
+            >
+            <button 
+                type="submit" 
+                class="btn-send" 
+                id="sendButton"
+                {% if not api_key_set or not ai_enabled %}disabled{% endif %}
+            >
+                送信
+            </button>
+            <button type="button" class="btn-clear" onclick="clearChat()">
+                クリア
+            </button>
+        </form>
+        <div class="usage-info" id="usageInfo"></div>
+    </div>
+</div>
+
+<script>
+let conversationHistory = [];
+
+function testConnection() {
+    showAlert('接続テスト中...', 'info');
+    
+    fetch('/test-openai/', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            let message = `✅ 接続成功！<br>`;
+            message += `モデル: ${data.details.model}<br>`;
+            message += `テスト応答: ${data.details.test_response}<br>`;
+            message += `トークン使用: ${data.details.usage.total_tokens}`;
+            showAlert(message, 'success');
+        } else {
+            showAlert(`❌ 接続エラー: ${data.error}<br>${data.details}`, 'error');
+        }
+    })
+    .catch(error => {
+        showAlert(`❌ エラー: ${error.message}`, 'error');
+    });
+}
+
+function sendMessage(event) {
+    event.preventDefault();
+    
+    const input = document.getElementById('messageInput');
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    // ユーザーメッセージを表示
+    addMessage('user', message);
+    conversationHistory.push({ role: 'user', content: message });
+    
+    // 入力をクリア
+    input.value = '';
+    
+    // 送信ボタンを無効化
+    const sendButton = document.getElementById('sendButton');
+    sendButton.disabled = true;
+    input.disabled = true;
+    
+    // ローディング表示
+    document.getElementById('loading').classList.add('active');
+    
+    // APIリクエスト
+    fetch('/ai-chat/send/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            message: message,
+            history: conversationHistory
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('loading').classList.remove('active');
+        
+        if (data.success) {
+            addMessage('assistant', data.message);
+            conversationHistory.push({ role: 'assistant', content: data.message });
+            
+            // 使用量を表示
+            document.getElementById('usageInfo').innerHTML = 
+                `トークン使用: ${data.usage.total_tokens} (入力: ${data.usage.prompt_tokens}, 出力: ${data.usage.completion_tokens}) | モデル: ${data.model}`;
+        } else {
+            showAlert(`エラー: ${data.error}`, 'error');
+        }
+        
+        sendButton.disabled = false;
+        input.disabled = false;
+        input.focus();
+    })
+    .catch(error => {
+        document.getElementById('loading').classList.remove('active');
+        showAlert(`エラー: ${error.message}`, 'error');
+        sendButton.disabled = false;
+        input.disabled = false;
+    });
+}
+
+function addMessage(role, content) {
+    const messagesDiv = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}`;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    
+    if (role === 'user') {
+        contentDiv.textContent = content;
+    } else {
+        contentDiv.innerHTML = content.replace(/\n/g, '<br>');
+    }
+    
+    messageDiv.appendChild(contentDiv);
+    messagesDiv.appendChild(messageDiv);
+    
+    // スクロールを最下部に
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function clearChat() {
+    if (confirm('会話履歴をクリアしますか？')) {
+        conversationHistory = [];
+        const messagesDiv = document.getElementById('chatMessages');
+        messagesDiv.innerHTML = `
+            <div class="message assistant">
+                <div class="message-content">
+                    <strong>システム:</strong> 会話履歴がクリアされました。新しい会話を始めましょう。
+                </div>
+            </div>
+        `;
+        document.getElementById('usageInfo').innerHTML = '';
+    }
+}
+
+function showAlert(message, type) {
+    const container = document.getElementById('alert-container');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type === 'error' ? 'error' : 'success'}`;
+    alert.innerHTML = message;
+    container.innerHTML = '';
+    container.appendChild(alert);
+    
+    setTimeout(() => {
+        alert.remove();
+    }, 5000);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
+

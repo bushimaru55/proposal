@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django import forms
 from django.utils.html import format_html
+from django.urls import reverse
+from django.utils.safestring import mark_safe
 from .models import SystemSettings, PromptTemplate, PromptVersion
 
 
@@ -21,7 +23,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('🔑 API設定', {
-            'fields': ('openai_api_key', 'ai_enabled', 'api_key_status'),
+            'fields': ('openai_api_key', 'ai_enabled', 'api_key_status', 'ai_test_buttons'),
             'description': 'OpenAI APIキーを設定してください。空の場合は環境変数から取得します。'
         }),
         ('CSV処理設定', {
@@ -53,7 +55,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         }),
     )
     
-    readonly_fields = ['updated_by', 'updated_at', 'api_key_status']
+    readonly_fields = ['updated_by', 'updated_at', 'api_key_status', 'ai_test_buttons']
     
     def api_key_status(self, obj):
         """APIキーの設定状態を表示"""
@@ -69,6 +71,68 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                 return format_html('<span style="color: red;">✗ 未設定</span>')
     
     api_key_status.short_description = 'APIキー状態'
+    
+    def ai_test_buttons(self, obj):
+        """AI機能のテストボタン"""
+        html = '''
+        <div style="margin: 15px 0;">
+            <button type="button" onclick="testOpenAIConnection()" 
+                    style="padding: 10px 20px; background: #28a745; color: white; border: none; 
+                           border-radius: 4px; cursor: pointer; font-size: 14px; margin-right: 10px;">
+                🔍 接続テスト
+            </button>
+            
+            <a href="/ai-chat/" target="_blank"
+               style="padding: 10px 20px; background: #007bff; color: white; border: none; 
+                      border-radius: 4px; cursor: pointer; font-size: 14px; text-decoration: none;
+                      display: inline-block;">
+                💬 AIチャットテスト
+            </a>
+            
+            <div id="test-result" style="margin-top: 15px;"></div>
+        </div>
+        
+        <script>
+        function testOpenAIConnection() {
+            const resultDiv = document.getElementById('test-result');
+            resultDiv.innerHTML = '<div style="padding: 10px; background: #e7f3ff; border-radius: 4px;">⏳ テスト実行中...</div>';
+            
+            fetch('/test-openai/', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let html = '<div style="padding: 15px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;">';
+                    html += '<strong>✅ 接続成功！</strong><br><br>';
+                    html += '<strong>APIキー:</strong> ' + data.details.api_key_masked + '<br>';
+                    html += '<strong>モデル:</strong> ' + data.details.model + '<br>';
+                    html += '<strong>Temperature:</strong> ' + data.details.temperature + '<br>';
+                    html += '<strong>テスト応答:</strong> ' + data.details.test_response + '<br>';
+                    html += '<strong>トークン使用:</strong> ' + data.details.usage.total_tokens + ' (入力: ' + data.details.usage.prompt_tokens + ', 出力: ' + data.details.usage.completion_tokens + ')';
+                    html += '</div>';
+                    resultDiv.innerHTML = html;
+                } else {
+                    let html = '<div style="padding: 15px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;">';
+                    html += '<strong>❌ 接続失敗</strong><br><br>';
+                    html += '<strong>エラー:</strong> ' + data.error + '<br>';
+                    html += '<strong>詳細:</strong> ' + data.details;
+                    html += '</div>';
+                    resultDiv.innerHTML = html;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = '<div style="padding: 15px; background: #f8d7da; border-radius: 4px; color: #721c24;">❌ エラー: ' + error.message + '</div>';
+            });
+        }
+        </script>
+        '''
+        return mark_safe(html)
+    
+    ai_test_buttons.short_description = 'AI機能テスト'
     
     def has_add_permission(self, request):
         # シングルトンなので追加不可
