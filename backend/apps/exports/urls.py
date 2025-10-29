@@ -1,9 +1,13 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
 
 app_name = 'exports'
 
+router = DefaultRouter()
+router.register(r'', views.ExportViewSet, basename='export')
+
 urlpatterns = [
-    # API endpoints will be added here
+    path('', include(router.urls)),
 ]
 

@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}トークスクリプト生成 - AI営業支援システム{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">トークスクリプト生成</h1>
+    
+    <div class="max-w-4xl mx-auto">
+        <!-- CSV分析（オプション） -->
+        <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-6">
+            <h2 class="text-2xl font-bold mb-4">データ分析（任意）</h2>
+            <p class="text-gray-600 mb-4">CSVファイルをアップロードして顧客データを分析できます（スキップも可能）</p>
+            
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="csvFile">
+                    CSVファイル
+                </label>
+                <input 
+                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                    id="csvFile" 
+                    type="file" 
+                    accept=".csv"
+                >
+            </div>
+            
+            <button 
+                id="uploadCsvBtn"
+                class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+            >
+                CSVをアップロードして分析
+            </button>
+            
+            <div id="csvStatus" class="mt-4 hidden"></div>
+        </div>
+
+        <!-- セクション選択 -->
+        <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-6">
+            <h2 class="text-2xl font-bold mb-4">生成するセクションを選択</h2>
+            
+            <div class="space-y-2">
+                <label class="flex items-center">
+                    <input type="checkbox" name="sections" value="opening" checked class="mr-2">
+                    <span class="text-lg">オープニング</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" name="sections" value="problem_identification" checked class="mr-2">
+                    <span class="text-lg">課題特定</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" name="sections" value="proposal" checked class="mr-2">
+                    <span class="text-lg">提案</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" name="sections" value="objection_handling" checked class="mr-2">
+                    <span class="text-lg">反論処理</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" name="sections" value="closing" checked class="mr-2">
+                    <span class="text-lg">クロージング</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 生成ボタン -->
+        <div class="bg-white shadow-md rounded px-8 pt-6 pb-8">
+            <button 
+                id="generateBtn"
+                class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded text-xl"
+            >
+                トークスクリプトを生成
+            </button>
+            
+            <div id="generationStatus" class="mt-4 hidden"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const companyId = window.location.pathname.split('/').filter(x => x)[2];
+let analysisId = null;
+
+// CSV アップロード
+document.getElementById('uploadCsvBtn').addEventListener('click', async function() {
+    const fileInput = document.getElementById('csvFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('CSVファイルを選択してください');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('description', `企業 ${companyId} のデータ分析`);
+    
+    const statusDiv = document.getElementById('csvStatus');
+    statusDiv.className = 'mt-4 p-4 bg-blue-100 border border-blue-400 rounded';
+    statusDiv.textContent = 'アップロード中...';
+    statusDiv.classList.remove('hidden');
+    
+    try {
+        // CSVアップロード
+        const uploadResponse = await fetch('/api/analysis/csv-uploads/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: formData
+        });
+        
+        if (!uploadResponse.ok) {
+            throw new Error('アップロードに失敗しました');
+        }
+        
+        const uploadData = await uploadResponse.json();
+        
+        // 分析開始
+        const analyzeResponse = await fetch(`/api/analysis/csv-uploads/${uploadData.id}/analyze/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        
+        if (!analyzeResponse.ok) {
+            throw new Error('分析開始に失敗しました');
+        }
+        
+        const analyzeData = await analyzeResponse.json();
+        
+        statusDiv.className = 'mt-4 p-4 bg-green-100 border border-green-400 rounded';
+        statusDiv.textContent = '分析を開始しました。完了までお待ちください...';
+        
+        // 分析完了を待つ（ポーリング）
+        await waitForAnalysis(uploadData.id);
+        
+    } catch (error) {
+        statusDiv.className = 'mt-4 p-4 bg-red-100 border border-red-400 rounded';
+        statusDiv.textContent = 'エラー: ' + error.message;
+    }
+});
+
+async function waitForAnalysis(csvUploadId) {
+    const maxAttempts = 60; // 最大10分
+    let attempts = 0;
+    
+    const checkInterval = setInterval(async () => {
+        attempts++;
+        
+        try {
+            const response = await fetch(`/api/analysis/csv-uploads/${csvUploadId}/`);
+            const data = await response.json();
+            
+            if (data.has_analysis) {
+                clearInterval(checkInterval);
+                
+                // 分析IDを取得
+                const analysesResponse = await fetch('/api/analysis/analyses/');
+                const analysesData = await analysesResponse.json();
+                const analysis = analysesData.results.find(a => a.csv_upload === csvUploadId);
+                
+                if (analysis) {
+                    analysisId = analysis.id;
+                    const statusDiv = document.getElementById('csvStatus');
+                    statusDiv.className = 'mt-4 p-4 bg-green-100 border border-green-400 rounded';
+                    statusDiv.innerHTML = `✓ 分析完了！ <a href="#" onclick="viewAnalysis(${analysis.id}); return false;" class="underline">結果を見る</a>`;
+                }
+            }
+            
+            if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                const statusDiv = document.getElementById('csvStatus');
+                statusDiv.className = 'mt-4 p-4 bg-yellow-100 border border-yellow-400 rounded';
+                statusDiv.textContent = 'タイムアウト: 分析に時間がかかっています';
+            }
+        } catch (error) {
+            console.error('分析状態確認エラー:', error);
+        }
+    }, 10000); // 10秒ごとにチェック
+}
+
+// トークスクリプト生成
+document.getElementById('generateBtn').addEventListener('click', async function() {
+    const sections = Array.from(document.querySelectorAll('input[name="sections"]:checked'))
+        .map(cb => cb.value);
+    
+    if (sections.length === 0) {
+        alert('少なくとも1つのセクションを選択してください');
+        return;
+    }
+    
+    const statusDiv = document.getElementById('generationStatus');
+    statusDiv.className = 'mt-4 p-4 bg-blue-100 border border-blue-400 rounded';
+    statusDiv.textContent = '生成中...';
+    statusDiv.classList.remove('hidden');
+    
+    try {
+        const response = await fetch('/api/sales/talk-scripts/generate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                company_id: parseInt(companyId),
+                analysis_id: analysisId,
+                selected_sections: sections
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('生成に失敗しました');
+        }
+        
+        const data = await response.json();
+        
+        statusDiv.className = 'mt-4 p-4 bg-green-100 border border-green-400 rounded';
+        statusDiv.innerHTML = `✓ トークスクリプトの生成を開始しました！<br><a href="/training/${data.talk_script_id}/" class="underline font-bold">トレーニングページへ</a>`;
+        
+    } catch (error) {
+        statusDiv.className = 'mt-4 p-4 bg-red-100 border border-red-400 rounded';
+        statusDiv.textContent = 'エラー: ' + error.message;
+    }
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function viewAnalysis(analysisId) {
+    window.open(`/analysis/${analysisId}/`, '_blank');
+}
+</script>
+{% endblock %}
+

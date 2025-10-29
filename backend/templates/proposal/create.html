@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}新規提案作成 - AI営業支援システム{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">新規提案作成</h1>
+    
+    <div class="max-w-4xl mx-auto">
+        <!-- ステップインジケーター -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center text-blue-600">
+                    <div class="rounded-full h-12 w-12 flex items-center justify-center bg-blue-600 text-white font-bold">1</div>
+                    <div class="ml-2 text-sm font-medium">企業情報</div>
+                </div>
+                <div class="flex-auto border-t-2 transition duration-500 ease-in-out border-gray-300"></div>
+                <div class="flex items-center text-gray-500">
+                    <div class="rounded-full h-12 w-12 flex items-center justify-center bg-gray-300 text-white font-bold">2</div>
+                    <div class="ml-2 text-sm font-medium">CSV分析</div>
+                </div>
+                <div class="flex-auto border-t-2 transition duration-500 ease-in-out border-gray-300"></div>
+                <div class="flex items-center text-gray-500">
+                    <div class="rounded-full h-12 w-12 flex items-center justify-center bg-gray-300 text-white font-bold">3</div>
+                    <div class="ml-2 text-sm font-medium">スクリプト生成</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 企業情報入力フォーム -->
+        <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <h2 class="text-2xl font-bold mb-6">企業情報を入力</h2>
+            
+            <form id="companyForm" method="post" action="/api/companies/">
+                {% csrf_token %}
+                
+                <!-- 企業URL（必須） -->
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="website_url">
+                        企業サイトURL <span class="text-red-500">*</span>
+                    </label>
+                    <input 
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                        id="website_url" 
+                        name="website_url" 
+                        type="url" 
+                        placeholder="https://example.com"
+                        required
+                    >
+                    <p class="text-gray-600 text-xs italic mt-1">企業のWebサイトURLを入力してください（自動で情報を取得します）</p>
+                </div>
+
+                <!-- 企業名 -->
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
+                        企業名
+                    </label>
+                    <input 
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                        id="name" 
+                        name="name" 
+                        type="text" 
+                        placeholder="株式会社サンプル"
+                    >
+                </div>
+
+                <!-- 業界 -->
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="industry">
+                        業界
+                    </label>
+                    <input 
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                        id="industry" 
+                        name="industry" 
+                        type="text" 
+                        placeholder="IT・ソフトウェア"
+                    >
+                </div>
+
+                <!-- 従業員数 -->
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="employee_count">
+                        従業員数
+                    </label>
+                    <input 
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                        id="employee_count" 
+                        name="employee_count" 
+                        type="text" 
+                        placeholder="100名"
+                    >
+                </div>
+
+                <!-- 事業内容 -->
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="business_description">
+                        事業内容（任意）
+                    </label>
+                    <textarea 
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                        id="business_description" 
+                        name="business_description" 
+                        rows="3"
+                        placeholder="企業の主要事業について（自動取得後に編集も可能です）"
+                    ></textarea>
+                </div>
+
+                <!-- ボタン -->
+                <div class="flex items-center justify-between">
+                    <button 
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" 
+                        type="submit"
+                    >
+                        企業情報を取得して次へ
+                    </button>
+                    <a href="{% url 'core:dashboard' %}" class="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800">
+                        キャンセル
+                    </a>
+                </div>
+            </form>
+
+            <!-- 処理中表示 -->
+            <div id="loadingIndicator" class="hidden mt-6 p-4 bg-blue-100 border border-blue-400 rounded">
+                <div class="flex items-center">
+                    <svg class="animate-spin h-5 w-5 mr-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-blue-700">企業情報を取得しています...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('companyForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    // ローディング表示
+    document.getElementById('loadingIndicator').classList.remove('hidden');
+    form.querySelector('button[type="submit"]').disabled = true;
+    
+    try {
+        const response = await fetch('/api/companies/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            alert('企業情報の取得を開始しました。次のステップに進みます。');
+            window.location.href = `/proposal/step2/${result.id}/`;
+        } else {
+            const error = await response.json();
+            alert('エラー: ' + JSON.stringify(error));
+        }
+    } catch (error) {
+        alert('エラーが発生しました: ' + error.message);
+    } finally {
+        document.getElementById('loadingIndicator').classList.add('hidden');
+        form.querySelector('button[type="submit"]').disabled = false;
+    }
+});
+</script>
+{% endblock %}
+

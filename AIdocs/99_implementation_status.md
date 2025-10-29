@@ -74,40 +74,62 @@
 - ダッシュボード
 - ベーステンプレート
 
-## 次のステップ（実装推奨）
+## 追加実装完了項目（最新）
 
-### 🔄 PDF処理機能
+### ✅ PDF処理機能
 **ファイル:** `backend/apps/products/processors.py`
+- PDFProcessor: PyPDF2とpdfplumberによる高精度テキスト抽出
+- 自動チャンク分割機能
+- URLProcessor: Webページコンテンツ取得
+- ProductInfoStructurer: AI構造化処理
 
-```python
-# PDFからテキスト抽出
-# テキストチャンク分割
-# AI構造化処理
-```
-
-### 🔄 CSV分析タスク
+### ✅ CSV分析タスク
 **ファイル:** `backend/apps/analysis/tasks.py`
+- analyze_csv_data: pandasによるCSV解析
+- AI分析実行（GPT-4o）
+- 基本統計情報自動取得
+- カスタムプロンプト対応
 
-```python
-# pandasでCSV解析
-# OpenAI APIで分析実行
-# 結果保存
-```
+### ✅ 商品ナレッジ処理タスク
+**ファイル:** `backend/apps/products/tasks.py`
+- process_product_knowledge_task: 非同期処理
+- PDF/URL/テキストの自動処理
+- バッチ処理対応
 
-### 🔄 API エンドポイント
-各アプリの`views.py`にDRF ViewSetsを実装
+### ✅ API エンドポイント
+全アプリにDRF ViewSetsを完全実装：
+- **CompanyViewSet**: 企業情報CRUD、スクレイピング実行、統計
+- **ProductViewSet / ProductCategoryViewSet / ProductKnowledgeViewSet**: 商品管理
+- **CSVUploadViewSet / AnalysisViewSet**: CSV分析
+- **TalkScriptViewSet / SalesOutcomeViewSet / TrainingSessionViewSet**: 営業管理
+- **ExportViewSet**: PowerPoint出力とダウンロード
 
-### 🔄 フロントエンド UI拡張
-- 企業情報入力画面
-- CSV任意アップロード画面
-- セクション選択画面
-- 2カラムレイアウト（トレーニング画面）
-- PowerPoint生成画面
+### ✅ シリアライザ
+全モデルの完全なシリアライザ実装：
+- 一覧用・詳細用の最適化
+- バリデーション実装
+- ネストされたデータ対応
+
+### ✅ フロントエンド UI拡張
+**実装済みテンプレート:**
+- `proposal/create.html`: 企業情報入力画面（ステップインジケーター付き）
+- `proposal/script_generate.html`: CSV任意アップロード、セクション選択画面
+- `proposal/training.html`: 2カラムレイアウト（企業情報/分析 | トークスクリプト）
+- トレーニングタイマー機能
+- リアルタイムデータ読み込み
+
+## 今後の推奨拡張（オプション）
 
 ### 🔄 テスト
 - ユニットテスト
 - 統合テスト
 - E2Eテスト
+
+### 🔄 追加機能（任意）
+- リアルタイム通知（WebSocket）
+- ダッシュボードのグラフ・チャート
+- レポート生成機能
+- モバイル対応UI
 
 ## セットアップ手順
 

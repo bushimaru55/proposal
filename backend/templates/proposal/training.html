@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}営業トレーニング - AI営業支援システム{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-6">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold">営業トレーニング</h1>
+        <p class="text-gray-600 mt-2">企業情報と分析結果を確認しながら、AIが生成したトークスクリプトで提案の練習ができます</p>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- 左側: 企業情報・分析結果 -->
+        <div class="lg:w-1/2 space-y-6">
+            <!-- 企業情報カード -->
+            <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                <div class="bg-blue-600 text-white px-6 py-4">
+                    <h2 class="text-xl font-bold">企業情報</h2>
+                </div>
+                <div class="p-6">
+                    <div id="companyInfo">
+                        <!-- 企業情報がここに表示される -->
+                        <div class="animate-pulse">
+                            <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                            <div class="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                            <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CSV分析結果カード（オプション） -->
+            <div id="analysisSection" class="bg-white shadow-lg rounded-lg overflow-hidden hidden">
+                <div class="bg-green-600 text-white px-6 py-4">
+                    <h2 class="text-xl font-bold">データ分析結果</h2>
+                </div>
+                <div class="p-6">
+                    <div id="analysisContent">
+                        <!-- 分析結果がここに表示される -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 提案商品リスト -->
+            <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                <div class="bg-purple-600 text-white px-6 py-4">
+                    <h2 class="text-xl font-bold">提案商品</h2>
+                </div>
+                <div class="p-6">
+                    <div id="productsList">
+                        <!-- 提案商品がここに表示される -->
+                        <div class="animate-pulse">
+                            <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                            <div class="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- トレーニング記録 -->
+            <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                <div class="bg-gray-600 text-white px-6 py-4">
+                    <h2 class="text-xl font-bold">トレーニング記録</h2>
+                </div>
+                <div class="p-6">
+                    <button 
+                        id="startTrainingBtn"
+                        class="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-4 rounded"
+                    >
+                        トレーニング開始
+                    </button>
+                    <button 
+                        id="endTrainingBtn"
+                        class="w-full bg-red-500 hover:bg-red-700 text-white font-bold py-3 px-4 rounded hidden mt-2"
+                    >
+                        トレーニング終了
+                    </button>
+                    <div id="trainingTimer" class="hidden mt-4 text-center">
+                        <div class="text-2xl font-bold" id="timerDisplay">00:00:00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側: トークスクリプト -->
+        <div class="lg:w-1/2">
+            <div class="bg-white shadow-lg rounded-lg overflow-hidden sticky top-6">
+                <div class="bg-orange-600 text-white px-6 py-4">
+                    <h2 class="text-xl font-bold">トークスクリプト</h2>
+                </div>
+                <div class="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+                    <div id="talkScript">
+                        <!-- トークスクリプトがここに表示される -->
+                        <div class="animate-pulse">
+                            <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                            <div class="h-4 bg-gray-200 rounded w-5/6 mb-2"></div>
+                            <div class="h-4 bg-gray-200 rounded w-4/5 mb-2"></div>
+                            <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// トークスクリプトIDをURLから取得
+const talkScriptId = window.location.pathname.split('/').filter(x => x)[2];
+
+// データ読み込み
+async function loadData() {
+    try {
+        // トークスクリプト取得
+        const scriptResponse = await fetch(`/api/sales/talk-scripts/${talkScriptId}/`);
+        const scriptData = await scriptResponse.json();
+        
+        // 企業情報表示
+        displayCompanyInfo(scriptData.company);
+        
+        // トークスクリプト表示
+        displayTalkScript(scriptData);
+        
+        // 商品情報表示
+        displayProducts(scriptData.linked_products);
+        
+        // 分析結果表示（あれば）
+        if (scriptData.analysis) {
+            await displayAnalysis(scriptData.analysis);
+        }
+    } catch (error) {
+        console.error('データ読み込みエラー:', error);
+        alert('データの読み込みに失敗しました');
+    }
+}
+
+function displayCompanyInfo(companyId) {
+    fetch(`/api/companies/${companyId}/`)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('companyInfo').innerHTML = `
+                <h3 class="text-2xl font-bold mb-4">${data.name || '企業名未取得'}</h3>
+                <div class="space-y-2">
+                    <p><strong>URL:</strong> <a href="${data.website_url}" target="_blank" class="text-blue-600 hover:underline">${data.website_url}</a></p>
+                    ${data.industry ? `<p><strong>業界:</strong> ${data.industry}</p>` : ''}
+                    ${data.employee_count ? `<p><strong>従業員数:</strong> ${data.employee_count}</p>` : ''}
+                    ${data.business_description ? `<p><strong>事業内容:</strong> ${data.business_description}</p>` : ''}
+                    ${data.challenges ? `<div class="mt-4"><strong>課題:</strong><p class="text-gray-700 mt-1">${data.challenges}</p></div>` : ''}
+                </div>
+            `;
+        });
+}
+
+function displayTalkScript(data) {
+    let html = '';
+    
+    if (data.opening_script) {
+        html += `<div class="mb-6">
+            <h3 class="text-lg font-bold text-blue-600 mb-2">1. オープニング</h3>
+            <div class="text-gray-800 whitespace-pre-wrap">${data.opening_script}</div>
+        </div>`;
+    }
+    
+    if (data.problem_identification_script) {
+        html += `<div class="mb-6">
+            <h3 class="text-lg font-bold text-green-600 mb-2">2. 課題特定</h3>
+            <div class="text-gray-800 whitespace-pre-wrap">${data.problem_identification_script}</div>
+        </div>`;
+    }
+    
+    if (data.proposal_script) {
+        html += `<div class="mb-6">
+            <h3 class="text-lg font-bold text-purple-600 mb-2">3. 提案</h3>
+            <div class="text-gray-800 whitespace-pre-wrap">${data.proposal_script}</div>
+        </div>`;
+    }
+    
+    if (data.objection_handling_script) {
+        html += `<div class="mb-6">
+            <h3 class="text-lg font-bold text-orange-600 mb-2">4. 反論処理</h3>
+            <div class="text-gray-800 whitespace-pre-wrap">${data.objection_handling_script}</div>
+        </div>`;
+    }
+    
+    if (data.closing_script) {
+        html += `<div class="mb-6">
+            <h3 class="text-lg font-bold text-red-600 mb-2">5. クロージング</h3>
+            <div class="text-gray-800 whitespace-pre-wrap">${data.closing_script}</div>
+        </div>`;
+    }
+    
+    document.getElementById('talkScript').innerHTML = html;
+}
+
+function displayProducts(products) {
+    if (!products || products.length === 0) {
+        document.getElementById('productsList').innerHTML = '<p class="text-gray-600">提案商品がありません</p>';
+        return;
+    }
+    
+    const html = products.map(link => `
+        <div class="border-l-4 border-purple-500 pl-4 mb-4">
+            <h4 class="font-bold">${link.product_name}</h4>
+            <p class="text-sm text-gray-600 mt-1">適合度: ${(link.match_score * 100).toFixed(0)}%</p>
+            <p class="text-sm text-gray-700 mt-2">${link.match_reason}</p>
+        </div>
+    `).join('');
+    
+    document.getElementById('productsList').innerHTML = html;
+}
+
+async function displayAnalysis(analysisId) {
+    const response = await fetch(`/api/analysis/analyses/${analysisId}/`);
+    const data = await response.json();
+    
+    document.getElementById('analysisSection').classList.remove('hidden');
+    document.getElementById('analysisContent').innerHTML = `
+        <div class="text-gray-800 whitespace-pre-wrap">${data.analysis_result}</div>
+    `;
+}
+
+// トレーニングタイマー
+let trainingStartTime = null;
+let trainingInterval = null;
+
+document.getElementById('startTrainingBtn').addEventListener('click', function() {
+    trainingStartTime = new Date();
+    document.getElementById('startTrainingBtn').classList.add('hidden');
+    document.getElementById('endTrainingBtn').classList.remove('hidden');
+    document.getElementById('trainingTimer').classList.remove('hidden');
+    
+    trainingInterval = setInterval(updateTimer, 1000);
+});
+
+document.getElementById('endTrainingBtn').addEventListener('click', async function() {
+    clearInterval(trainingInterval);
+    
+    const duration = Math.floor((new Date() - trainingStartTime) / 1000 / 60);
+    
+    // トレーニングセッションを記録
+    try {
+        await fetch('/api/sales/training-sessions/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                talk_script: talkScriptId,
+                duration_minutes: duration
+            })
+        });
+        
+        alert(`トレーニングを記録しました（${duration}分）`);
+    } catch (error) {
+        console.error('記録エラー:', error);
+    }
+    
+    // リセット
+    document.getElementById('startTrainingBtn').classList.remove('hidden');
+    document.getElementById('endTrainingBtn').classList.add('hidden');
+    document.getElementById('trainingTimer').classList.add('hidden');
+    document.getElementById('timerDisplay').textContent = '00:00:00';
+});
+
+function updateTimer() {
+    const elapsed = Math.floor((new Date() - trainingStartTime) / 1000);
+    const hours = Math.floor(elapsed / 3600);
+    const minutes = Math.floor((elapsed % 3600) / 60);
+    const seconds = elapsed % 60;
+    
+    document.getElementById('timerDisplay').textContent = 
+        `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// ページ読み込み時にデータ取得
+loadData();
+</script>
+{% endblock %}
+
