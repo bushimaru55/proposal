@@ -89,3 +89,53 @@ def clear_settings_cache():
     cache.delete('openai_api_key')
     cache.delete('system_settings')
 
+
+def get_prompt_template(template_type, context=None, fallback_system_prompt=None, fallback_user_prompt=None):
+    """
+    プロンプトテンプレートを取得してレンダリング
+    
+    Args:
+        template_type: テンプレートタイプ（例: 'csv_analysis'）
+        context: レンダリング用のコンテキスト（辞書）
+        fallback_system_prompt: フォールバック用のシステムプロンプト
+        fallback_user_prompt: フォールバック用のユーザープロンプト
+    
+    Returns:
+        tuple: (system_prompt, user_prompt) または None
+    """
+    try:
+        from .models import PromptTemplate
+        
+        template = PromptTemplate.objects.filter(
+            template_type=template_type,
+            is_active=True
+        ).order_by('-is_default', '-version').first()
+        
+        if template:
+            # テンプレートをレンダリング
+            if context:
+                try:
+                    from django.template import Template, Context
+                    t = Template(template.user_prompt_template)
+                    rendered_user_prompt = t.render(Context(context))
+                except Exception:
+                    # レンダリングエラー時はそのまま返す
+                    rendered_user_prompt = template.user_prompt_template
+            else:
+                rendered_user_prompt = template.user_prompt_template
+            
+            return (
+                template.system_prompt,
+                rendered_user_prompt,
+                template.model_override,
+                template.temperature_override
+            )
+        
+        # テンプレートが見つからない場合はフォールバック
+        if fallback_system_prompt and fallback_user_prompt:
+            return (fallback_system_prompt, fallback_user_prompt, None, None)
+        
+    except Exception:
+        pass
+    
+    return None

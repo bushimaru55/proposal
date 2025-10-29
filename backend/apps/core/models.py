@@ -194,14 +194,16 @@ class PromptTemplate(models.Model):
     """カスタマイズ可能なプロンプトテンプレート"""
     
     TEMPLATE_TYPES = [
+        ('csv_analysis', 'CSV解析'),
         ('company_analysis', '企業情報分析'),
         ('product_extraction', '商品情報抽出'),
         ('product_matching', '商品マッチング'),
-        ('script_opening', 'スクリプト：オープニング'),
-        ('script_problem', 'スクリプト：課題特定'),
-        ('script_solution', 'スクリプト：ソリューション提案'),
-        ('script_objection', 'スクリプト：反論処理'),
-        ('script_closing', 'スクリプト：クロージング'),
+        ('script_opening', 'トークスクリプト：オープニング'),
+        ('script_problem', 'トークスクリプト：課題特定'),
+        ('script_solution', 'トークスクリプト：ソリューション提案'),
+        ('script_objection', 'トークスクリプト：反論処理'),
+        ('script_closing', 'トークスクリプト：クロージング'),
+        ('script_generate', 'トークスクリプト：生成（全体）'),
         ('custom', 'カスタム'),
     ]
     

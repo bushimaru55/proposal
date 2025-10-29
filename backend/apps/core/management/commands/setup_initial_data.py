@@ -82,11 +82,45 @@ class Command(BaseCommand):
         
         templates = [
             {
+                'name': 'デフォルト：CSV解析',
+                'template_type': 'csv_analysis',
+                'description': 'CSVデータを分析するプロンプト',
+                'system_prompt': 'あなたはデータ分析の専門家です。CSVデータを分析し、ビジネスインサイトを提供します。',
+                'user_prompt_template': '''以下のCSVデータを分析してください：
+
+【基本統計情報】
+{{basic_stats}}
+
+【データサマリー】
+{{data_summary}}
+
+ビジネス上の洞察、傾向、推奨事項を提示してください。''',
+                'is_default': True,
+                'is_active': True,
+            },
+            {
                 'name': 'デフォルト：企業情報分析',
                 'template_type': 'company_analysis',
                 'description': '企業Webサイトから抽出した情報を分析するプロンプト',
                 'system_prompt': 'あなたは企業分析の専門家です。Webサイトの情報から企業の特徴を正確に抽出します。',
-                'user_prompt_template': '以下の企業情報を分析してください:\n{{company_info}}',
+                'user_prompt_template': '''以下のWebサイト情報から企業の重要な情報を抽出して構造化してください：
+
+タイトル: {{title}}
+説明: {{meta_description}}
+本文: {{main_content}}
+
+以下の項目をJSON形式で返してください：
+{
+  "company_name": "企業名",
+  "business_description": "事業内容の簡潔な説明",
+  "industry": "業界",
+  "key_services": ["主要サービス1", "主要サービス2"],
+  "target_market": "ターゲット市場",
+  "pain_points": ["推定される課題1", "推定される課題2"],
+  "ai_summary": "企業の特徴を3-4文で要約"
+}
+
+※情報が不明な項目は空文字または空配列を返してください。''',
                 'is_default': True,
                 'is_active': True,
             },
@@ -170,6 +204,30 @@ class Command(BaseCommand):
 次のステップへ進むための自然なクロージングトークを作成してください。
 押し売りではなく、顧客の意思決定をサポートする表現にしてください。
 ''',
+                'is_default': True,
+                'is_active': True,
+            },
+            {
+                'name': 'デフォルト：トークスクリプト生成（全体）',
+                'template_type': 'script_generate',
+                'description': '企業情報と商品情報からトークスクリプト全体を生成',
+                'system_prompt': 'あなたは経験豊富な営業トレーナーです。効果的な営業トークスクリプトを作成します。',
+                'user_prompt_template': '''以下の情報をもとに、営業トークスクリプトを作成してください。
+
+【顧客情報】
+企業名: {{company_info.company_name}}
+業界: {{company_info.industry}}
+事業内容: {{company_info.business_description}}
+推定課題: {{company_info.pain_points}}
+
+【提案商品】
+{{product_info}}
+
+【学習コンテキスト】
+{{learning_context}}
+
+上記の情報を踏まえて、実際の商談で使える具体的なトークスクリプトを作成してください。
+顧客との信頼関係を築き、課題を明確化し、適切なソリューションを提案する構成にしてください。''',
                 'is_default': True,
                 'is_active': True,
             },

@@ -185,15 +185,73 @@ class PromptTemplateAdmin(admin.ModelAdmin):
         ('基本情報', {
             'fields': ('name', 'template_type', 'description', 'is_active', 'is_default')
         }),
-        ('プロンプト設定', {
-            'fields': ('system_prompt', 'user_prompt_template'),
+        ('🔵 1. システムプロンプト（AIの役割定義）', {
+            'fields': ('system_prompt',),
             'description': '''
-            <div style="background: #f0f8ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
+            <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #007bff;">
+                <strong>💡 システムプロンプトの用途：</strong><br><br>
+                これはAIに「あなたは誰で、どのような役割を持つのか」を定義するプロンプトです。<br><br>
+                
+                <strong>例:</strong><br>
+                • 「あなたは企業分析の専門家です。Webサイトの情報から企業の特徴を正確に抽出します。」<br>
+                • 「あなたは経験豊富な営業トレーナーです。効果的な営業トークスクリプトを作成します。」<br>
+                • 「あなたはデータ分析の専門家です。CSVデータを分析し、ビジネスインサイトを提供します。」<br><br>
+                
+                <strong>注意:</strong> ここに入力された内容は、すべてのAI生成において一貫して使用されます。
+            </div>
+            '''
+        }),
+        ('🟢 2. ユーザープロンプト（具体的なタスク指示）', {
+            'fields': ('user_prompt_template',),
+            'description': '''
+            <div style="background: #f0fff4; padding: 15px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #28a745;">
+                <strong>💡 ユーザープロンプトの用途：</strong><br><br>
+                これは具体的に「何をしてほしいのか」を指示するプロンプトです。変数を使用して動的な情報を埋め込めます。<br><br>
+                
                 <strong>使用可能な変数：</strong><br>
-                • {{analysis_result}} - データ分析結果<br>
-                • {{company_info}} - 企業情報<br>
-                • {{product_info}} - 商品情報<br>
-                • {{custom_input}} - カスタム入力<br>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <tr style="background: #f8f9fa;">
+                        <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">変数</th>
+                        <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">説明</th>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><code>{{analysis_result}}</code></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">CSV分析の結果</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><code>{{company_info}}</code></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">企業情報（スクレイピング結果）</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><code>{{company_info.company_name}}</code></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">企業名のみ</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><code>{{company_info.industry}}</code></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">業界</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><code>{{product_info}}</code></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">商品情報</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><code>{{basic_stats}}</code></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">基本統計情報（CSV解析用）</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><code>{{data_summary}}</code></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">データサマリー（CSV解析用）</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><code>{{learning_context}}</code></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">学習コンテキスト（営業結果からの学習）</td>
+                    </tr>
+                </table><br>
+                
+                <strong>例:</strong><br>
+                <code>以下の企業情報を分析してください：<br>
+                企業名: {{company_info.company_name}}<br>
+                業界: {{company_info.industry}}</code>
             </div>
             '''
         }),
