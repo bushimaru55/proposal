@@ -9,11 +9,12 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('apps.accounts.urls')),
-    path('api/companies/', include('apps.companies.urls')),
-    path('api/products/', include('apps.products.urls')),
-    path('api/analysis/', include('apps.analysis.urls')),
-    path('api/sales/', include('apps.sales.urls')),
-    path('api/exports/', include('apps.exports.urls')),
+    # API endpoints (一時的に無効化 - モデル修正後に有効化)
+    # path('api/companies/', include('apps.companies.urls')),
+    # path('api/products/', include('apps.products.urls')),
+    # path('api/analysis/', include('apps.analysis.urls')),
+    # path('api/sales/', include('apps.sales.urls')),
+    # path('api/exports/', include('apps.exports.urls')),
     path('', include('apps.core.urls')),
 ]
 

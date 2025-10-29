@@ -8,41 +8,48 @@ from .models import Company
 class CompanySerializer(serializers.ModelSerializer):
     """企業情報のシリアライザ"""
     
-    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
-    scraping_status_display = serializers.CharField(source='get_scraping_status_display', read_only=True)
+    scrape_status_display = serializers.CharField(source='get_scrape_status_display', read_only=True)
     
     class Meta:
         model = Company
         fields = [
             'id',
-            'name',
-            'website_url',
-            'industry',
-            'employee_count',
-            'annual_revenue',
+            'url',
+            'domain',
+            'title',
+            'meta_description',
+            'main_content',
+            'company_name',
             'business_description',
-            'key_products',
+            'industry',
+            'key_services',
             'target_market',
-            'challenges',
-            'raw_scraped_data',
-            'scraping_status',
-            'scraping_status_display',
+            'ai_summary',
+            'pain_points',
+            'scrape_status',
+            'scrape_status_display',
             'scraped_at',
-            'created_by',
-            'created_by_name',
-            'created_at',
-            'updated_at'
+            'created_at'
         ]
         read_only_fields = [
             'id',
-            'raw_scraped_data',
-            'scraping_status',
+            'domain',
+            'title',
+            'meta_description',
+            'main_content',
+            'company_name',
+            'business_description',
+            'industry',
+            'key_services',
+            'target_market',
+            'ai_summary',
+            'pain_points',
+            'scrape_status',
             'scraped_at',
-            'created_at',
-            'updated_at'
+            'created_at'
         ]
     
-    def validate_website_url(self, value):
+    def validate_url(self, value):
         """URLの検証"""
         if not value:
             raise serializers.ValidationError("企業URLは必須です")
@@ -56,17 +63,15 @@ class CompanySerializer(serializers.ModelSerializer):
 class CompanyListSerializer(serializers.ModelSerializer):
     """企業情報一覧用の軽量シリアライザ"""
     
-    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
-    
     class Meta:
         model = Company
         fields = [
             'id',
-            'name',
-            'website_url',
+            'url',
+            'domain',
+            'company_name',
             'industry',
-            'scraping_status',
-            'created_by_name',
+            'scrape_status',
             'created_at'
         ]
 

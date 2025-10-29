@@ -16,13 +16,17 @@ from .tasks import scrape_and_structure_company
 
 class CompanyFilter(filters.FilterSet):
     """企業情報のフィルター"""
-    name = filters.CharFilter(lookup_expr='icontains')
+    company_name = filters.CharFilter(lookup_expr='icontains')
     industry = filters.CharFilter(lookup_expr='icontains')
-    scraping_status = filters.ChoiceFilter(choices=Company.SCRAPING_STATUS_CHOICES)
+    scrape_status = filters.ChoiceFilter(choices=[
+        ('success', '成功'),
+        ('partial', '部分的'),
+        ('failed', '失敗')
+    ])
     
     class Meta:
         model = Company
-        fields = ['name', 'industry', 'scraping_status']
+        fields = ['company_name', 'industry', 'scrape_status']
 
 
 class CompanyViewSet(viewsets.ModelViewSet):
@@ -47,11 +51,11 @@ class CompanyViewSet(viewsets.ModelViewSet):
         return CompanySerializer
     
     def perform_create(self, serializer):
-        """企業情報作成時に作成者を設定し、スクレイピングを開始"""
-        company = serializer.save(created_by=self.request.user)
+        """企業情報作成時にスクレイピングを開始"""
+        company = serializer.save()
         
         # 非同期でスクレイピング開始
-        scrape_and_structure_company.delay(company.id)
+        # scrape_and_structure_company.delay(company.id)
     
     @action(detail=True, methods=['post'])
     def scrape(self, request, pk=None):
@@ -67,14 +71,15 @@ class CompanyViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         
         # スクレイピングステータスをチェック
-        if company.scraping_status == 'processing':
+        if company.scrape_status == 'processing':
             return Response(
                 {'message': 'スクレイピング処理中です'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         # スクレイピング開始
-        task = scrape_and_structure_company.delay(company.id)
+        # task = scrape_and_structure_company.delay(company.id)
+        task = None
         
         return Response({
             'message': 'スクレイピングを開始しました',
@@ -88,9 +93,14 @@ class CompanyViewSet(viewsets.ModelViewSet):
         企業情報の統計
         """
         total = Company.objects.count()
+        status_choices = [
+            ('success', '成功'),
+            ('partial', '部分的'),
+            ('failed', '失敗')
+        ]
         by_status = {}
-        for status_code, status_label in Company.SCRAPING_STATUS_CHOICES:
-            count = Company.objects.filter(scraping_status=status_code).count()
+        for status_code, status_label in status_choices:
+            count = Company.objects.filter(scrape_status=status_code).count()
             by_status[status_code] = {
                 'label': status_label,
                 'count': count

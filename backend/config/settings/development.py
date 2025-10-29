@@ -5,17 +5,17 @@ from .base import *
 
 DEBUG = True
 
-# Django Debug Toolbar
-if 'django_debug_toolbar' not in INSTALLED_APPS:
-    INSTALLED_APPS += ['django_debug_toolbar']
-
-if 'debug_toolbar.middleware.DebugToolbarMiddleware' not in MIDDLEWARE:
-    MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
-
-INTERNAL_IPS = [
-    '127.0.0.1',
-    'localhost',
-]
+# Django Debug Toolbar (一時的に無効化)
+# if 'django_debug_toolbar' not in INSTALLED_APPS:
+#     INSTALLED_APPS += ['django_debug_toolbar']
+# 
+# if 'debug_toolbar.middleware.DebugToolbarMiddleware' not in MIDDLEWARE:
+#     MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
+# 
+# INTERNAL_IPS = [
+#     '127.0.0.1',
+#     'localhost',
+# ]
 
 # Allow all hosts in development
 ALLOWED_HOSTS = ['*']

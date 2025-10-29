@@ -2,7 +2,7 @@
 商品管理のシリアライザ
 """
 from rest_framework import serializers
-from .models import ProductCategory, Product, ProductKnowledge, ProposalProductLink
+from .models import ProductCategory, Product, ProductKnowledge
 
 
 class ProductCategorySerializer(serializers.ModelSerializer):
@@ -112,21 +112,5 @@ class ProductListSerializer(serializers.ModelSerializer):
         return obj.productknowledge_set.count()
 
 
-class ProposalProductLinkSerializer(serializers.ModelSerializer):
-    """提案-商品リンクのシリアライザ"""
-    
-    product_name = serializers.CharField(source='product.name', read_only=True)
-    
-    class Meta:
-        model = ProposalProductLink
-        fields = [
-            'id',
-            'talk_script',
-            'product',
-            'product_name',
-            'match_score',
-            'match_reason',
-            'created_at'
-        ]
-        read_only_fields = ['id', 'created_at']
+# ProposalProductLinkSerializer は apps.sales.serializers に移動しました
 
