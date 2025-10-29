@@ -6,6 +6,8 @@ from django.db.models import Q
 import logging
 import time
 
+from apps.core.utils import get_openai_api_key, is_ai_enabled
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,7 +24,7 @@ class TalkScriptGenerator:
     
     def __init__(self, system_settings=None):
         from apps.core.models import SystemSettings
-        self.client = OpenAI()
+        self.client = OpenAI(api_key=get_openai_api_key())
         self.settings = system_settings or SystemSettings.get_settings()
     
     def get_learning_context(self, company):

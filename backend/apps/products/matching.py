@@ -5,6 +5,8 @@ from openai import OpenAI
 import json
 import logging
 
+from apps.core.utils import get_openai_api_key, is_ai_enabled
+
 logger = logging.getLogger(__name__)
 
 
@@ -12,7 +14,7 @@ class ProductMatcher:
     """分析結果と企業情報から最適な商品を選択"""
     
     def __init__(self):
-        self.client = OpenAI()
+        self.client = OpenAI(api_key=get_openai_api_key())
     
     def match_products(self, company_info, available_products, analysis_result=None):
         """

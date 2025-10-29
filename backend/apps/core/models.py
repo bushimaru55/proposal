@@ -24,6 +24,13 @@ class SystemSettings(models.Model):
     )
     
     # === AI設定 ===
+    openai_api_key = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="OpenAI APIキー",
+        help_text="OpenAI APIキーを入力してください。空の場合は環境変数から取得します。"
+    )
+    
     default_ai_model = models.CharField(
         max_length=50,
         default='gpt-4o',
@@ -50,6 +57,13 @@ class SystemSettings(models.Model):
         default=1000000,
         validators=[MinValueValidator(0)],
         verbose_name="1日のトークン上限"
+    )
+    
+    # AI機能の有効化
+    ai_enabled = models.BooleanField(
+        default=True,
+        verbose_name="AI機能を有効化",
+        help_text="AI機能（分析、スクリプト生成など）を有効にする"
     )
     
     # === スクレイピング設定 ===
@@ -153,6 +167,7 @@ class SystemSettings(models.Model):
         
         # キャッシュをクリア
         cache.delete('system_settings')
+        cache.delete('openai_api_key')  # APIキーのキャッシュもクリア
         
         super().save(*args, **kwargs)
     
@@ -164,6 +179,12 @@ class SystemSettings(models.Model):
             settings_obj, _ = cls.objects.get_or_create(singleton_id=1)
             cache.set('system_settings', settings_obj, 300)  # 5分間キャッシュ
         return settings_obj
+    
+    def get_openai_api_key(self):
+        """OpenAI APIキーを取得（DB優先、次に環境変数）"""
+        if self.openai_api_key:
+            return self.openai_api_key
+        return settings.OPENAI_API_KEY
     
     def __str__(self):
         return "システム設定"

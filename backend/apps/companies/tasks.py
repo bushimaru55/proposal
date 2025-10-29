@@ -6,6 +6,8 @@ from django.utils import timezone
 import logging
 import json
 
+from apps.core.utils import get_openai_api_key, is_ai_enabled
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,7 +51,7 @@ def scrape_and_structure_company(self, company_id):
         self.update_state(state='PROGRESS', meta={'progress': 50, 'status': 'AI分析中'})
         
         # AIで構造化
-        client = OpenAI()
+        client = OpenAI(api_key=get_openai_api_key())
         
         prompt = f"""
 以下は企業のWebサイトからスクレイピングした情報です。

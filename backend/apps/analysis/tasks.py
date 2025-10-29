@@ -8,6 +8,7 @@ from openai import OpenAI
 from django.conf import settings
 
 from .models import CSVUpload, Analysis
+from apps.core.utils import get_openai_api_key, is_ai_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +42,23 @@ def analyze_csv_data(self, csv_upload_id: int, analysis_prompt: str = None):
         # 3. データサマリーを作成（AIに渡す用）
         data_summary = _create_data_summary(df)
         
+        # 4. AI機能の確認
+        if not is_ai_enabled():
+            logger.warning("AI機能が無効です。基本統計情報のみ保存します。")
+            # AI分析なしで保存
+            analysis = Analysis.objects.create(
+                csv_upload=csv_upload,
+                analysis_result={
+                    'statistics': basic_stats,
+                    'summary': data_summary,
+                    'ai_analysis': 'AI機能が無効のため、分析は実行されませんでした。'
+                },
+                status='completed'
+            )
+            return analysis.id
+        
         # 4. AIで分析実行
-        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        client = OpenAI(api_key=get_openai_api_key())
         
         # システム設定からプロンプトテンプレートを取得
         from apps.core.models import PromptTemplate

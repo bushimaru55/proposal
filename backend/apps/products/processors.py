@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 from openai import OpenAI
 
 from django.conf import settings
+from apps.core.utils import get_openai_api_key, is_ai_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -200,7 +201,7 @@ class ProductInfoStructurer:
     """商品情報構造化クラス - AIを使用して情報を整理"""
     
     def __init__(self):
-        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.client = OpenAI(api_key=get_openai_api_key())
     
     def structure_product_info(
         self,
